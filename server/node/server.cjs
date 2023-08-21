@@ -42,7 +42,7 @@ app.get('/', async (req, res, next) => {
 
 const proxyFunc = async (req, res, next) => {
 
-    const urlParam = req.headers['risu-url'] ? JSON.parse(decodeURIComponent(req.headers['risu-url'])) : req.query.url;
+    const urlParam = req.headers['risu-url'] ? JSON.parse(JSON.stringify(decodeURIComponent(req.headers['risu-url']))) : req.query.url;
 
     if (!urlParam) {
         res.status(400).send({
@@ -54,30 +54,57 @@ const proxyFunc = async (req, res, next) => {
 
     let originalResponse;
     try {
-        console.log(urlParam)
-        originalResponse = await fetch(urlParam, {
-            method: req.method,
-            headers: header,
-            body: JSON.stringify(req.body)
-        });
+        try {
+            console.log('Fetching:', urlParam);
+            const https = require('https');
+
+            const agent = new https.Agent({
+                rejectUnauthorized: false
+            });
+            console.log(JSON.stringify(req.body))
+
+            originalResponse = await fetch(urlParam, {
+                method: req.method,
+                headers: header,
+                body: JSON.stringify(req.body),
+                agent: agent
+            });
+
+            console.log('Fetch successful:', originalResponse.status);
+        } catch (error) {
+            console.error('Error during fetch:', error);
+        }
+
 
     } catch (err) {
         next(err);
         return;
     }
+
     const status = originalResponse.status;
 
     const originalBody = await originalResponse.text();
-    const head = originalResponse.headers
-    head.delete('content-security-policy');
-    head.delete('content-security-policy-report-only');
-    head.delete('clear-site-data');
-    head.delete('Cache-Control');
-    if(status < 200 || status >= 300){
-        res.status(status)
+    const originalHeaders = originalResponse.headers;
+
+    // Create a mutable object for headers
+    const mutableHeaders = {};
+    for (let [key, value] of originalHeaders.entries()) {
+        mutableHeaders[key] = value;
     }
-    res.header(head)
+
+    // Delete the headers you don't want
+    delete mutableHeaders['content-security-policy'];
+    delete mutableHeaders['content-security-policy-report-only'];
+    delete mutableHeaders['clear-site-data'];
+    delete mutableHeaders['cache-control'];
+
+    if (status < 200 || status >= 300) {
+        res.status(status);
+    }
+
+    res.set(mutableHeaders); // Using 'set' in case you're using Express
     res.send(originalBody);
+
 }
 
 app.post('/proxy', proxyFunc);

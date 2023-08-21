@@ -44,7 +44,6 @@
                     <Sidebar openGrid={() => {gridOpen = true}}  hidden={false} />
 
 
-
                 </div>
             {/if}
             <ChatScreen />

@@ -57,7 +57,7 @@
         unsub()
     })
 
-    $: if($DataBase.aiModel === 'textgen_webui' || $DataBase.subModel === 'mancer'){
+    $: if($DataBase.aiModel === 'textgen_webui'){
         $DataBase.useStreaming = $DataBase.textgenWebUIStreamURL.startsWith("wss://")
     }
 </script>
@@ -121,10 +121,7 @@
     <span class="text-textcolor">NovelList {language.apiKey}</span>
     <TextInput marginBottom={true} size={"sm"} placeholder="..." bind:value={$DataBase.novellistAPI}/>
 {/if}
-{#if $DataBase.aiModel.startsWith('mancer') || $DataBase.subModel.startsWith('mancer')}
-    <span class="text-textcolor">Mancer {language.apiKey}</span>
-    <TextInput marginBottom={true} size={"sm"} placeholder="..." bind:value={$DataBase.mancerHeader}/>
-{/if}
+
 {#if $DataBase.aiModel.startsWith('claude') || $DataBase.subModel.startsWith('claude')}
     <span class="text-textcolor">Claude {language.apiKey}</span>
     <TextInput marginBottom={true} size={"sm"} placeholder="..." bind:value={$DataBase.claudeAPIKey}/>
@@ -136,19 +133,9 @@
     <TextInput marginBottom={false} size={"sm"} placeholder="leave it blank if it hasn't password" bind:value={$DataBase.proxyKey} />
     <span class="text-textcolor mt-4"> {language.proxyRequestModel}</span>
     <SelectInput className="mt-2 mb-4" bind:value={$DataBase.proxyRequestModel}>
-        <OptionInput value="">None</OptionInput>
-        <OptionInput value="gpt35">GPT 3.5</OptionInput>
-        <OptionInput value="gpt35_16k">GPT 3.5 16k</OptionInput>
-        <OptionInput value="gpt4">GPT-4</OptionInput>
-        <OptionInput value="gpt4_32k">GPT-4 32k</OptionInput>
-        <OptionInput value="gpt35_0301">GPT-3.5 0301</OptionInput>
-        <OptionInput value="gpt4_0301">GPT-4 0301</OptionInput>
-        <OptionInput value="claude-2">claude-2</OptionInput>
-        <OptionInput value="claude-v1.3">claude-v1.3</OptionInput>
-        <OptionInput value="claude-v1.3-100k">claude-v1.3-100k</OptionInput>
-        <OptionInput value="claude-v1.2">claude-v1.2</OptionInput>
-        <OptionInput value="claude-instant-v1.1">claude-instant-v1.1</OptionInput>
-        <OptionInput value="claude-instant-v1.1-100k">claude-instant-v1.1-100k</OptionInput>
+        <OptionInput value="glm2">glm2</OptionInput>
+        <OptionInput value="claude">claude</OptionInput>
+        <OptionInput value="gpt-3.5-turbo">gpt-3.5-turbo</OptionInput>
     </SelectInput>
 {/if}
 {#if $DataBase.aiModel === 'openrouter' || $DataBase.subModel === 'openrouter'}
@@ -225,12 +212,11 @@
     <TextInput marginBottom={true} bind:value={$DataBase.hordeConfig.apiKey} />
 
 {/if}
-{#if $DataBase.aiModel === 'textgen_webui' || $DataBase.subModel === 'textgen_webui'
-    || $DataBase.aiModel === 'mancer' || $DataBase.subModel === 'mancer'}
-    <span class="text-textcolor mt-2">Blocking {language.providerURL}</span>
+{#if $DataBase.aiModel === 'textgen_webui' || $DataBase.subModel === 'textgen_webui'}
+    <span class="text-textcolor mt-2">Oobabooga Blocking {language.providerURL}</span>
     <TextInput marginBottom={true} bind:value={$DataBase.textgenWebUIBlockingURL} placeholder="https://..."/>
     <span class="text-draculared text-xs mb-2">You must use textgen webui with --public-api</span>
-    <span class="text-textcolor mt-2">Stream {language.providerURL}</span>
+    <span class="text-textcolor mt-2">Oobabooga Stream {language.providerURL}</span>
     <TextInput marginBottom={true} bind:value={$DataBase.textgenWebUIStreamURL} placeholder="wss://..."/>
     {#if !isTauri}
         <span class="text-draculared text-xs mb-2">You are using web version. you must use ngrok or other tunnels to use your local webui.</span>
@@ -247,7 +233,7 @@
         <span class="text-textcolor">{language.globalNote} <Help key="globalNote"/></span>
         <TextAreaInput fullwidth autocomplete="off" height={"32"} bind:value={$DataBase.globalNote}></TextAreaInput>
         <span class="text-textcolor2 mb-6 text-sm mt-2">{tokens.globalNote} {language.tokens}</span>
-    {/if}    
+    {/if}
 
     <span class="text-textcolor">{language.maxContextSize}</span>
     <NumberInput min={0} max={getModelMaxContext($DataBase.aiModel)} marginBottom={true} bind:value={$DataBase.maxContext}/>
@@ -265,7 +251,7 @@
 {/if}
 <span class="text-textcolor2 mb-6 text-sm">{($DataBase.temperature / 100).toFixed(2)}</span>
 
-{#if $DataBase.aiModel === 'textgen_webui' || $DataBase.subModel === 'mancer'}
+{#if $DataBase.aiModel === 'textgen_webui'}
     <span class="text-textcolor">Repetition Penalty</span>
     <SliderInput min={1} max={1.5} step={0.01} bind:value={$DataBase.ooba.repetition_penalty}/>
     <span class="text-textcolor2 mb-6 text-sm">{($DataBase.ooba.repetition_penalty).toFixed(2)}</span>

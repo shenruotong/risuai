@@ -11,19 +11,21 @@ import { hubURL } from "../characterCards";
 import { NovelAIBadWordIds, stringlizeNAIChat } from "./models/nai";
 import { tokenizeNum } from "../tokenizer";
 
-interface requestDataArgument{
-    formated: OpenAIChat[]
-    bias: {[key:number]:number}
-    biasString?: [string,number][]
-    currentChar?: character
-    temperature?: number
-    maxTokens?:number
-    PresensePenalty?: number
-    frequencyPenalty?: number,
-    useStreaming?:boolean
-    isGroupChat?:boolean
-    useEmotion?:boolean
+interface requestDataArgument {
+    formated: OpenAIChat[];
+    bias: { [key: number]: number };
+    biasString?: [string, number][];
+    currentChar?: character;
+    temperature?: number;
+    maxTokens?: number;
+    PresensePenalty?: number;
+    frequencyPenalty?: number;
+    useStreaming?: boolean;
+    isGroupChat?: boolean;
+    useEmotion?: boolean;
+    insecure?: boolean; // Adding insecure option for HTTPS requests
 }
+
 
 type requestDataResponse = {
     type: 'success'|'fail'
@@ -71,7 +73,7 @@ export async function requestChatData(arg:requestDataArgument, model:'model'|'su
         if(da.type !== 'fail' || da.noRetry){
             return da
         }
-        
+
         trys += 1
         if(trys > db.requestRetrys){
             return da
@@ -95,9 +97,6 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
 
     let raiModel = aiModel
     if(aiModel === 'reverse_proxy'){
-        if(db.proxyRequestModel.startsWith('claude')){
-            raiModel = db.proxyRequestModel
-        }
         if(db.forceProxyAsOpenAI){
             raiModel = 'reverse_proxy'
         }
@@ -128,7 +127,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
             for(let i=0;i<biasString.length;i++){
                 const bia = biasString[i]
                 const tokens = await tokenizeNum(bia[0])
-        
+
                 for(const token of tokens){
                     bias[token] = bia[1]
                 }
@@ -254,7 +253,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                         method: "POST",
                         headers: headers,
                         signal: abortSignal
-                    })  
+                    })
 
                 if(da.status !== 200){
                     return {
@@ -302,7 +301,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                             }
                             control.enqueue(readed)
                         } catch (error) {
-                            
+
                         }
                     }
                 },)
@@ -319,8 +318,10 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                 body: body,
                 headers: headers,
                 abortSignal,
-                useRisuToken:throughProxi
+                useRisuToken:throughProxi,
+                insecure: true  // Adding insecure option
             })
+            console.log(body)
 
             const dat = res.data as any
             if(res.ok){
@@ -330,7 +331,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                         type: 'success',
                         result: msg.content
                     }
-                } catch (error) {                    
+                } catch (error) {
                     return {
                         type: 'fail',
                         result: (language.errors.httpError + `${JSON.stringify(dat)}`)
@@ -338,13 +339,13 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                 }
             }
             else{
-                if(dat.error && dat.error.message){                    
+                if(dat.error && dat.error.message){
                     return {
                         type: 'fail',
                         result: (language.errors.httpError + `${dat.error.message}`)
                     }
                 }
-                else{                    
+                else{
                     return {
                         type: 'fail',
                         result: (language.errors.httpError + `${JSON.stringify(res.data)}`)
@@ -366,7 +367,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                 const tokens = await tokenizeNum(bia[0])
 
                 const tokensInNumberArray:number[] = []
-    
+
                 for(const token of tokens){
                     tokensInNumberArray.push(token)
                 }
@@ -403,10 +404,10 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                 stop_sequences: [[49287]],
                 bad_words_ids: NovelAIBadWordIds,
                 logit_bias_exp: logit_bias_exp
-                
+
             }
 
-              
+
             const body = {
                 "input": proompt,
                 "model": aiModel === 'novelai_kayra' ? 'kayra-v1' : 'clio-v1',
@@ -433,8 +434,7 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
             }
         }
 
-        case "textgen_webui":
-        case 'mancer':{
+        case "textgen_webui":{
             let streamUrl = db.textgenWebUIStreamURL.replace(/\/api.*/, "/api/v1/stream")
             let blockingUrl = db.textgenWebUIBlockingURL.replace(/\/api.*/, "/api/v1/generate")
             let bodyTemplate:any
@@ -465,11 +465,6 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
                 add_bos_token: true,
                 prompt: proompt
             }
-
-            const headers = (aiModel === 'textgen_webui') ? {} : {
-                'X-API-KEY': db.mancerHeader
-            }
-
             if(db.useStreaming && arg.useStreaming){
                 const oobaboogaSocket = new WebSocket(streamUrl);
                 const statusCode = await new Promise((resolve) => {
@@ -520,8 +515,9 @@ export async function requestChatDataMain(arg:requestDataArgument, model:'model'
 
             const res = await globalFetch(blockingUrl, {
                 body: bodyTemplate,
-                headers: headers,
-                abortSignal
+                headers: {},
+                abortSignal,
+                insecure: true  // Adding insecure option
             })
             
             const dat = res.data as any
